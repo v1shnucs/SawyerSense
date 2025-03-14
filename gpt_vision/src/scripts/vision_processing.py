@@ -15,7 +15,7 @@ IMG_RES = (230,440)
 
 app = FastAPI()
 
-LABELS = [
+LABELS = [      # TODO: put in auxiliary file
     "There is a yellow circle in space 1. ",
     "There is a red circle in space 1. ",
     "There is a blue circle in space 1. ",
@@ -179,8 +179,11 @@ print("Models loaded.")
 df = pd.read_csv(LABELS_PATH)
 
 def make_readable(soft_vote_predictions):
-
-    return f"Shape of ResNet result: {soft_vote_predictions.shape}"
+    readable_predictions = ""
+    for prediction_category, label in zip(soft_vote_predictions, LABELS):
+        if prediction_category != 0:
+            readable_predictions = readable_predictions + label
+    return readable_predictions
 
 def soft_vote(resized_img):
     # use two models to predict on all images
@@ -188,13 +191,18 @@ def soft_vote(resized_img):
     predictions2 = model2.predict(resized_img)
     # soft voting (average) of all outputs for accurate predictions
     soft_vote_predictions = (predictions1 + predictions2) / 2
+    for i in range(0, len(soft_vote_predictions)):
+        for j in range(0,156,13):           # TODO: fix magic numbers
+            index = np.argmax(soft_vote_predictions[i][j:j+13])
+            soft_vote_predictions[i][j:j+13] = [0 for i in range(13)]
+            soft_vote_predictions[i][j+index]= 1 
+    soft_vote_predictions = soft_vote_predictions[0].astype(int)
     return make_readable(soft_vote_predictions)
 
 def process_image(image_bytes):
     image_tensor = tf.io.decode_image(image_bytes, channels = 3)
     resized_img = tf.image.resize(image_tensor, IMG_RES)
     batched_img = tf.expand_dims(resized_img, axis=0)
-    print(batched_img.shape)
     return soft_vote(batched_img)
 
 @app.post("/predict/")
