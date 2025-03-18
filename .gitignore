@@ -1,2 +1,7 @@
 *.keras
 *.h5
+build/
+devel/
+intera_common/
+intera_sdk/
+sawyer_robot/
