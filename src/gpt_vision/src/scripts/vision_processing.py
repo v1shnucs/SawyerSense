@@ -1,14 +1,13 @@
 from fastapi import FastAPI, File, UploadFile
 import numpy as np          
-import pandas as pd        
+# import pandas as pd        
 import tensorflow as tf                 # 2.16.1
 from tensorflow.keras.models import load_model
-from PIL import Image
 import uvicorn
 
-MODEL1_PATH = "C:\\Users\\geand\\OneDrive\\Documents\\CSUCI\\ros_2025\\ros_2025\\gpt_vision\\src\\models\\grid_model_equalized.h5"
-MODEL2_PATH = "C:\\Users\\geand\\OneDrive\\Documents\\CSUCI\\ros_2025\\ros_2025\\gpt_vision\\src\\models\\grid_model_unequalized.keras"
-LABELS_PATH = "C:\\Users\\geand\\OneDrive\\Documents\\CSUCI\\SURF 2024\\Grid Model\\grid_model_test_photos\\test_labels.csv"
+MODEL1_PATH = "../models/grid_model_equalized.h5"
+MODEL2_PATH = "../models/grid_model_unequalized.keras"
+# LABELS_PATH = "C:\\Users\\geand\\OneDrive\\Documents\\CSUCI\\SURF 2024\\Grid Model\\grid_model_test_photos\\test_labels.csv"
 # Have to use this image resolution, smaller than camera resolution for
 # model training and prediction efficiency
 IMG_RES = (230,440)
@@ -176,7 +175,7 @@ LABELS = [      # TODO: put in auxiliary file
 model1 = load_model(MODEL1_PATH)
 model2 = load_model(MODEL2_PATH)
 print("Models loaded.")
-df = pd.read_csv(LABELS_PATH)
+# df = pd.read_csv(LABELS_PATH)
 
 def make_readable(soft_vote_predictions):
     readable_predictions = ""
