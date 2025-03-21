@@ -28,7 +28,9 @@ def callback(data, args):
         if encoding == "bgr8":
             image_array = image_data.reshape((height, width, 3))
         elif encoding == "rgb8":
-            image_array = image_data.reshape((height, width, 3))[:,:, ::-1]
+            # Convert RGB to BGR for cv2.imwrite which expects BGR
+            image_array = image_data.reshape((height, width, 3))
+            image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
         elif encoding == "bgra8":
             image_array = image_data.reshape((height, width, 4))[:,:,[2,1,0,3]]
             image_array = image_array[:,:,:3]
