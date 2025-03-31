@@ -1,0 +1,8 @@
+
+rosrun intera_examples joint_torque_springs.py
+
+sleep 5
+
+rosrun intera_interface enable_robot.py -d
+
+#Press Shutdown Button
