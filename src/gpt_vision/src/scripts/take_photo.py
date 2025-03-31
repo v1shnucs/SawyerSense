@@ -65,6 +65,13 @@ def take_photo(filename, camera):
         cameras = intera_interface.Cameras()
         cameras.start_streaming(camera)
         path = HEAD_CAMERA_TOPIC
+<<<<<<< HEAD
+=======
+    elif camera == 'arm_camera':
+        cameras = intera_interface.Cameras()
+        cameras.start_streaming(camera)
+        path = ARM_CAMERA_TOPIC
+>>>>>>> workspace
     else:
         path = REALSENSE_CAMERA_TOPIC
 

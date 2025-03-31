@@ -34,6 +34,7 @@ class GPTResponseNode:
         self.latest_grid_state = None
         # Store latest transcription
         self.latest_transcription = None
+<<<<<<< HEAD
         
         # System prompt
         self.system_prompt = """You are a helpful robot assistant that controls a robot arm. 
@@ -56,10 +57,24 @@ Example response:
         {"action": "place", "square": 9}
     ]
 }"""
+=======
+        # GPT service configuration
+        self.gpt_service_url = os.getenv('GPT_SERVICE_URL', 'http://localhost:8000')
+        rospy.loginfo("Using GPT service at: %s", self.gpt_service_url)
+        
+        # Initialize persistent HTTP session
+        self.session = requests.Session()
+        self.session.headers.update({
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Connection": "keep-alive"
+        })
+>>>>>>> workspace
         
         rospy.loginfo("GPT Response Node initialized")
     
     def grid_state_callback(self, msg):
+<<<<<<< HEAD
         """Store the latest grid state"""
         self.latest_grid_state = msg.data
         rospy.loginfo("Received grid state: %s", self.latest_grid_state)
@@ -135,6 +150,79 @@ Example response:
                 
         except Exception as e:
             rospy.logerr("Error getting GPT response: %s", str(e))
+=======
+        """Store the latest grid state and process any pending transcription"""
+        self.latest_grid_state = msg.data
+        rospy.loginfo("Received grid state: %s", self.latest_grid_state)
+        
+        # Process any pending transcription
+        if self.latest_transcription:
+            self._process_inputs()
+
+    def transcription_callback(self, msg):
+        """Handle new transcription and process if grid state is available"""
+        self.latest_transcription = msg.data
+        rospy.loginfo("Received transcription: %s", self.latest_transcription)
+        
+        if self.latest_grid_state:
+            self._process_inputs()
+        else:
+            rospy.logwarn("Received transcription but no grid state available yet")
+    
+    def _process_inputs(self):
+        """Helper to combine and process inputs"""
+        combined_input = "Transcription: {}\nGrid State: {}".format(
+            self.latest_transcription, self.latest_grid_state)
+        self.process_input(combined_input)
+
+    def get_gpt_response(self, user_input):
+        try:
+            # Extract transcription and grid state from user input
+            parts = user_input.split("\nGrid State: ")
+            if len(parts) != 2:
+                raise ValueError("Invalid input format")
+            
+            transcription = parts[0].replace("Transcription: ", "").strip()
+            grid_state = parts[1].strip()
+
+            # Prepare request data
+            data = {
+                "transcription": transcription,
+                "grid_state": grid_state
+            }
+
+            # Make request to FastAPI service using persistent session with retries
+            max_retries = 2
+            timeout = 8  # Increased timeout for API response
+            
+            for attempt in range(max_retries + 1):
+                try:
+                    response = self.session.post(
+                        "{}/gpt".format(self.gpt_service_url),
+                        json=data,
+                        timeout=(2, timeout)  # (connect timeout, read timeout)
+                    )
+                    break
+                except requests.exceptions.Timeout:
+                    if attempt < max_retries:
+                        rospy.logwarn("Request timed out, retrying... (attempt %d/%d)",
+                                    attempt + 1, max_retries)
+                        continue
+                    raise
+
+            if response.status_code != 200:
+                rospy.logerr("Service request failed: %s", response.text)
+                return None
+
+            # Get the response JSON
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            rospy.logerr("Error communicating with GPT service: %s", str(e))
+            return None
+        except Exception as e:
+            rospy.logerr("Error processing response: %s", str(e))
+>>>>>>> workspace
             return None
 
     def publish_actions(self, actions):
@@ -177,4 +265,12 @@ if __name__ == '__main__':
         node = GPTResponseNode()
         rospy.spin()
     except rospy.ROSInterruptException:
+<<<<<<< HEAD
         pass
+=======
+        pass
+    finally:
+        # Clean up session on exit
+        if hasattr(node, 'session'):
+            node.session.close()
+>>>>>>> workspace
