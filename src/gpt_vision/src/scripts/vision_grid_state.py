@@ -11,6 +11,17 @@ import argparse
 import os
 import base64
 import urllib2
+from threading import Event
+
+# Event to track if arm is ready
+arm_ready = Event()
+
+def arm_moved_callback(msg):
+    """Callback when arm movement is complete"""
+    global arm_ready
+    if msg.data == "move_complete":
+        rospy.loginfo("Arm is in position for photo")
+        arm_ready.set()
 
 # Vision service endpoint
 VISION_SERVICE_URL = "http://localhost:8001/vision"
@@ -121,11 +132,22 @@ def callback(data, args):
         rospy.logerr("Error in callback: %s", str(e))
 
 def vision_grid_state(filename, camera):
-    global grid_state_publisher
+    global grid_state_publisher, arm_ready
     rospy.init_node('vision_grid_state', anonymous=True)
+    
+    # Clear the arm ready event
+    arm_ready.clear()
 
     # Initialize the publisher
     grid_state_publisher = rospy.Publisher('/grid_state', String, queue_size=10)
+    
+    # Subscribe to arm movement completion topic
+    rospy.Subscriber('/move_arm_finished', String, arm_moved_callback)
+    
+    rospy.loginfo("Waiting for arm to move into position...")
+    if not arm_ready.wait(timeout=10.0):  # Wait up to 10 seconds
+        rospy.logwarn("Timed out waiting for arm to move, proceeding with photo anyway")
+    
     rospy.sleep(1)  # Wait for publisher to initialize
 
     rospy.loginfo("Using camera: %s", camera)
@@ -146,14 +168,12 @@ def vision_grid_state(filename, camera):
     rospy.spin()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Takes photo, analyzes with GPT-4V, and publishes grid state'
-    )
-    parser.add_argument('filename', help='Name of jpg file to be saved')
-    parser.add_argument('-c', '--camera', 
-                       help='"head_camera" or "rs" for RealSense camera, default is rs')
-    args = parser.parse_args()
-    if args.camera is None:
-        args.camera = 'rs'  # Default to RealSense camera
-
-    vision_grid_state(args.filename, args.camera)
+    try:
+        # Get parameters from ROS parameter server, with defaults
+        rospy.init_node('vision_grid_state', anonymous=True)
+        filename = rospy.get_param('~filename', 'workspace')
+        camera = rospy.get_param('~camera', 'rs')
+        
+        vision_grid_state(filename, camera)
+    except rospy.ROSInterruptException:
+        pass

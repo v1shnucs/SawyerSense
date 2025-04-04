@@ -17,6 +17,6 @@ include_directories(
 
 catkin_install_python(PROGRAMS
   src/scripts/get_gpt_response.py
-  src/scripts/vision_processing.py
+  src/scripts/vision_grid_state.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

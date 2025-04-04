@@ -76,11 +76,15 @@ Each numbered space might have an object to its right with:
 - Color: red, blue, yellow, or green
 - Shape: circle, triangle, or square
 
-For spaces that have objects, write:
+If you see objects, for each object write:
 'Space X has [color] [shape]'
+List one object per line.
 
-Skip any space that has no object.
-List one object per line."""
+If there are no objects at all in the grid, respond with exactly:
+'Grid is empty - no objects detected'
+
+If you cannot see or analyze the image clearly, respond with exactly:
+'Unable to analyze image clearly'"""
                     },
                     {
                         "type": "input_image",

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 # Code modified from intera_examples
-
 import rospy
 import argparse
 from intera_motion_interface import (
@@ -10,6 +9,7 @@ from intera_motion_interface import (
     MotionWaypointOptions
 )
 from intera_interface import Limb
+from std_msgs.msg import String
 
 def main():
 
@@ -47,7 +47,13 @@ def main():
             return
 
         if result.result:
-            rospy.loginfo('move_arm_for_photo.py move_arm_for_photo.py successfully moved arm for photo')
+            # Initialize publisher for completion notification
+            pub = rospy.Publisher('/move_arm_finished', String, queue_size=10)
+            rospy.sleep(0.5)  # Wait for publisher to initialize
+            
+            rospy.loginfo('move_arm_for_photo.py successfully moved arm for photo')
+            # Publish completion message
+            pub.publish("move_complete")
         else:
             rospy.logerr('move_arm_for_photo.py Motion controller failed to complete the trajectory with error %s',
                          result.errorId)

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import pyttsx3 # gtts
+from gtts import gTTS
+import os
 import rospy
 import inspect
 from std_srvs.srv import Trigger, TriggerResponse
@@ -29,8 +30,7 @@ def extract_speak(input_string):
 
 def SpeakSentence(response):
     """
-    Given complete GPT response, use extract_speak() to get isolated string to speak,
-    then speak. 
+    Given text message, use text-to-speech to speak it.
     """
     rospy.loginfo("speak_gpt.py entered SpeakSentence")
     global speak_finished_publisher
@@ -38,20 +38,17 @@ def SpeakSentence(response):
     file_name = inspect.getfile(inspect.currentframe())
 
     try:
-        sentence = extract_speak(response.data)   
+        sentence = response.data
 
         if(len(sentence) > 1):
-            engine = pyttsx3.init()
-            voices = engine.getProperty('voices')
-
-            if len(voices) < 17:
-                raise SpeakError("The specified voice index is out of range.")       
-            engine.setProperty('voice', voices[16].id)  # english-us
-            engine.setProperty('rate', 150)
-
-            engine.say(sentence)
-
-            engine.runAndWait()
+            # Create gTTS object
+            tts = gTTS(text=sentence, lang='en')
+            # Save to temporary file
+            tts.save("/tmp/temp.mp3")
+            # Play the audio using system command
+            os.system("mpg123 /tmp/temp.mp3")
+            # Clean up
+            os.remove("/tmp/temp.mp3")
             rospy.loginfo("speak_gpt.py spoke: " + sentence)
         else:
             rospy.loginfo("speak_gpt.py Empty string received by engine")
@@ -76,7 +73,7 @@ def speak_output():
     rospy.init_node('speak_output')
     rospy.loginfo("speak_gpt.py entered")
     speak_finished_publisher = rospy.Publisher('/speak_finished', String, queue_size=10)
-    rospy.Subscriber("/gpt_response", String, SpeakSentence)
+    rospy.Subscriber("/speak_text", String, SpeakSentence)
     rospy.spin()
     rospy.loginfo("speak_gpt.py exiting")
 

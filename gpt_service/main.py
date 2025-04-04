@@ -2,6 +2,7 @@
 import json
 import os
 import time
+import re
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -34,6 +35,75 @@ def load_system_prompt():
 system_prompt = load_system_prompt()
 if not system_prompt:
     raise RuntimeError("Failed to load system prompt")
+
+def attempt_json_repair(text):
+    """Attempt to repair common JSON formatting issues"""
+    if not text:
+        return None
+        
+    print(f"Attempting to repair JSON: {text[:100]}...")
+    
+    # Try original text first
+    try:
+        return json.loads(text)
+    except:
+        pass
+    
+    # Fix unterminated strings (common GPT issue)
+    try:
+        # Pattern to find unterminated JSON strings
+        pattern = r'"([^"\\]*(\\.[^"\\]*)*)'
+        # Find all matches that aren't followed by a closing quote
+        unterminated = re.finditer(pattern + r'(?!")', text)
+        
+        fixed_text = text
+        # For each match, add a closing quote
+        for match in unterminated:
+            end_pos = match.end()
+            fixed_text = fixed_text[:end_pos] + '"' + fixed_text[end_pos:]
+        
+        # Test if the repair worked
+        try:
+            return json.loads(fixed_text)
+        except:
+            pass
+    except Exception as e:
+        print(f"Error in string repair: {e}")
+        # Attempt to close unterminated JSON objects or arrays
+        if text.count('{') > text.count('}'):
+            text += '}' * (text.count('{') - text.count('}'))
+        if text.count('[') > text.count(']'):
+            text += ']' * (text.count('[') - text.count(']'))
+        try:
+            return json.loads(text)
+        except Exception as e:
+            print(f"Final repair attempt failed: {e}")
+    
+    # Try to balance braces and brackets
+    try:
+        open_braces = text.count('{')
+        close_braces = text.count('}')
+        open_brackets = text.count('[')
+        close_brackets = text.count(']')
+        
+        fixed_text = text
+        
+        # Add missing closing braces
+        if open_braces > close_braces:
+            fixed_text += '}' * (open_braces - close_braces)
+            
+        # Add missing closing brackets
+        if open_brackets > close_brackets:
+            fixed_text += ']' * (open_brackets - close_brackets)
+            
+        try:
+            return json.loads(fixed_text)
+        except:
+            pass
+    except Exception as e:
+        print(f"Error in brace balancing: {e}")
+    
+    return None
 
 class Action(BaseModel):
     action: str
@@ -75,7 +145,7 @@ async def process_gpt_request(request: GPTRequest):
                 {"role": "user", "content": user_input}
             ],
             temperature=0.0,  # Deterministic responses
-            max_tokens=100,   # Further reduced tokens
+            max_tokens=200,   # Further reduced tokens
             response_format={"type": "json_object"},  # Force JSON response
             presence_penalty=0,
             frequency_penalty=0,
@@ -86,14 +156,28 @@ async def process_gpt_request(request: GPTRequest):
         # Parse the response
         try:
             response_text = response.choices[0].message.content.strip()
-            parsed_response = json.loads(response_text)
+            
+            # Log the raw response for debugging
+            print(f"Raw GPT response: {response_text}")
+            
+            # First try normal JSON parsing
+            try:
+                parsed_response = json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON parsing error: {e}")
+                # Attempt to repair malformed JSON
+                parsed_response = attempt_json_repair(response_text)
+                if not parsed_response:
+                    raise ValueError(f"Failed to parse GPT response after repair attempts: {str(e)}")
+                print("Successfully repaired malformed JSON")
             
             # Log timing information
             api_time = time.time() - start_time
             print(f"OpenAI API call took {api_time:.2f} seconds")
-            print(f"GPT Response: {response_text}")
+            print(f"GPT Response (parsed): {parsed_response}")
             
             # Handle nested content structure
+            content = parsed_response
             if "content" in parsed_response:
                 content = parsed_response["content"]
             else:

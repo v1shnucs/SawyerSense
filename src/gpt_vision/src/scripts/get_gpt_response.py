@@ -34,30 +34,7 @@ class GPTResponseNode:
         self.latest_grid_state = None
         # Store latest transcription
         self.latest_transcription = None
-<<<<<<< HEAD
-        
-        # System prompt
-        self.system_prompt = """You are a helpful robot assistant that controls a robot arm. 
-When given instructions about moving objects between spaces, along with the current grid state, you should:
-1. Analyze the current state and the requested move
-2. Provide a brief explanation of what you'll do
-3. Give a sequence of grab and place actions
 
-Your response must be in JSON format with two fields:
-- "speak": A brief explanation of what you're going to do
-- "actions": An array of actions, where each action has:
-  - "action": either "grab" or "place"
-  - "square": an integer from 1-12
-
-Example response:
-{
-    "speak": "I'll move the red circle from space 5 to space 9",
-    "actions": [
-        {"action": "grab", "square": 5},
-        {"action": "place", "square": 9}
-    ]
-}"""
-=======
         # GPT service configuration
         self.gpt_service_url = os.getenv('GPT_SERVICE_URL', 'http://localhost:8000')
         rospy.loginfo("Using GPT service at: %s", self.gpt_service_url)
@@ -69,88 +46,10 @@ Example response:
             "Accept": "application/json",
             "Connection": "keep-alive"
         })
->>>>>>> workspace
         
         rospy.loginfo("GPT Response Node initialized")
     
     def grid_state_callback(self, msg):
-<<<<<<< HEAD
-        """Store the latest grid state"""
-        self.latest_grid_state = msg.data
-        rospy.loginfo("Received grid state: %s", self.latest_grid_state)
-
-    def transcription_callback(self, msg):
-        """Handle new transcription by combining it with grid state"""
-        self.latest_transcription = msg.data
-        rospy.loginfo("Received transcription: %s", self.latest_transcription)
-        
-        # Only proceed if we have both transcription and grid state
-        if self.latest_grid_state:
-            # Combine transcription with grid state (Python 2 compatible string formatting)
-            combined_input = "Transcription: {}\nGrid State: {}".format(
-                self.latest_transcription, self.latest_grid_state)
-            self.process_input(combined_input)
-        else:
-            rospy.logwarn("Received transcription but no grid state available yet")
-
-    def get_gpt_response(self, user_input):
-        try:
-            # Create the prompt
-            prompt = self.system_prompt + "\n\nInput:\n" + user_input + "\n\nResponse:"
-            
-            # Prepare the API request
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": "Bearer {}".format(self.api_key)
-            }
-            
-            data = {
-                "model": "gpt-3.5-turbo-instruct",
-                "prompt": prompt,
-                "max_tokens": 150,
-                "temperature": 0.3,
-                "top_p": 1,
-                "frequency_penalty": 0,
-                "presence_penalty": 0,
-                "stop": ["\n\n"]
-            }
-            
-            # Make the API request
-            response = requests.post(
-                "https://api.openai.com/v1/completions",
-                headers=headers,
-                json=data
-            )
-            
-            if response.status_code != 200:
-                rospy.logerr("API request failed: %s", response.text)
-                return None
-            
-            # Get the response text
-            response_data = response.json()
-            response_text = response_data["choices"][0]["text"].strip()
-            rospy.loginfo("Raw GPT response: %s", response_text)
-            
-            # Parse the JSON response
-            try:
-                parsed_response = json.loads(response_text)
-                # Validate response format
-                if not isinstance(parsed_response, dict):
-                    raise ValueError("Response must be a dictionary")
-                if "speak" not in parsed_response or "actions" not in parsed_response:
-                    raise ValueError("Response must contain 'speak' and 'actions' fields")
-                if not isinstance(parsed_response["actions"], list):
-                    raise ValueError("'actions' must be an array")
-                
-                return parsed_response
-                
-            except json.JSONDecodeError:
-                rospy.logerr("Failed to parse GPT response as JSON: %s", response_text)
-                return None
-                
-        except Exception as e:
-            rospy.logerr("Error getting GPT response: %s", str(e))
-=======
         """Store the latest grid state and process any pending transcription"""
         self.latest_grid_state = msg.data
         rospy.loginfo("Received grid state: %s", self.latest_grid_state)
@@ -222,7 +121,7 @@ Example response:
             return None
         except Exception as e:
             rospy.logerr("Error processing response: %s", str(e))
->>>>>>> workspace
+            rospy.loginfo("Raw response (if available): %s", response.text if 'response' in locals() else "No response received")
             return None
 
     def publish_actions(self, actions):
@@ -265,12 +164,12 @@ if __name__ == '__main__':
         node = GPTResponseNode()
         rospy.spin()
     except rospy.ROSInterruptException:
-<<<<<<< HEAD
-        pass
-=======
         pass
     finally:
         # Clean up session on exit
-        if hasattr(node, 'session'):
+        try:
+            if hasattr(node, 'session'):
+                node.session.close()
+        except NameError:
+            print("Node variable is not defined during cleanup.")
             node.session.close()
->>>>>>> workspace
