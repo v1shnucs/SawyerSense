@@ -28,10 +28,6 @@ your_ip="192.168.1.237"
 
 # Specify ROS distribution (e.g. kinetic, indigo, hydro, etc.)
 ros_version="melodic"
-<<<<<<< HEAD
-unset ROS_DISTRO
-=======
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
 #-----------------------------------------------------------------------------#
 
 tf=$(mktemp)
@@ -155,10 +151,7 @@ has been built (source /opt/ros/\${ros_version}/setup.sh; catkin_make).\n\
 		export ROS_MASTER_URI="http://${robot_hostname}:11311"
 
 	# source the catkin setup bash script
-<<<<<<< HEAD
 	unset ROS_DISTRO
-=======
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
 	source devel/setup.bash
 
 	# setup the bash prompt
@@ -191,3 +184,4 @@ rm -f -- "${tf}"
 trap - EXIT
 
 # vim: noet
+unset ROS_DISTRO
