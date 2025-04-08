@@ -65,18 +65,13 @@ async def process_vision_request(request: VisionRequest):
                 "content": [
                     {
                         "type": "input_text",
-<<<<<<< HEAD
                         "text": """Analyze this grid image and identify objects:
-=======
-                        "text": """Look at this numbered grid image:
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
 
 Grid Layout:
 - Top row: spaces 9,10,11,12
 - Middle row: spaces 5,6,7,8
 - Bottom row: spaces 1,2,3,4
 
-<<<<<<< HEAD
 Each space may contain an object with:
 - Color: red, blue, yellow, or green
 - Shape: circle, triangle, or square
@@ -90,30 +85,11 @@ If no objects are detected, respond with:
 
 If the image is unclear, respond with:
 'Unable to analyze image'"""
-=======
-Each numbered space might have an object to its right with:
-- Color: red, blue, yellow, or green
-- Shape: circle, triangle, or square
-
-If you see objects, for each object write:
-'Space X has [color] [shape]'
-List one object per line.
-
-If there are no objects at all in the grid, respond with exactly:
-'Grid is empty - no objects detected'
-
-If you cannot see or analyze the image clearly, respond with exactly:
-'Unable to analyze image clearly'"""
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
                     },
                     {
                         "type": "input_image",
                         "image_url": f"data:image/jpeg;base64,{request.image_base64}",
-<<<<<<< HEAD
                         "detail": "auto"
-=======
-                        "detail": "high"
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
                     }
                 ]
             }]
