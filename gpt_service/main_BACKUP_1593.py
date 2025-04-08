@@ -140,10 +140,10 @@ async def process_gpt_request(request: GPTRequest):
         # Call OpenAI API using chat completions with further optimized parameters
         response = client.chat.completions.create(
 <<<<<<< HEAD
-            model="gpt-4o",  # Switching to GPT-4o model for better accuracy
-=======
             model="gpt-3.5-turbo-1106",  # Using faster model
->>>>>>> bca0fee3a0826adf6ab163e250f4afa1493aaf87
+=======
+            model="gpt-4o",  # Switching to GPT-4o model for better accuracy
+>>>>>>> Initial commit after reinitializing repository
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
