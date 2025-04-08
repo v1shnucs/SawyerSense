@@ -28,6 +28,7 @@ your_ip="192.168.1.237"
 
 # Specify ROS distribution (e.g. kinetic, indigo, hydro, etc.)
 ros_version="melodic"
+unset ROS_DISTRO
 #-----------------------------------------------------------------------------#
 
 tf=$(mktemp)
@@ -184,4 +185,3 @@ rm -f -- "${tf}"
 trap - EXIT
 
 # vim: noet
-unset ROS_DISTRO
