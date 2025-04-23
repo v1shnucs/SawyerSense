@@ -1,4 +1,4 @@
-# ROS 2025 Project
+# SawyerSense
 
 ## Instructions for Using the System
 
