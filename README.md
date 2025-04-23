@@ -69,12 +69,6 @@ cp .env.sample .env
 source devel/setup.bash
 ```
 
-4. Run the nodes
-```bash
-# In separate terminals:
-rosrun robot_action act_gpt.py
-rosrun gpt_vision get_gpt_response.py
-```
 
 ## Features
 
