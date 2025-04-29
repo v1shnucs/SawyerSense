@@ -12,7 +12,7 @@ from intera_interface import Limb
 
 def goto_table_neutral():
     """
-    goto_table_neutral primes arm to execute goto_square
+    goto_table_neutral primes arm to execute movement to grid spaces
     """
     try:
         limb = Limb()

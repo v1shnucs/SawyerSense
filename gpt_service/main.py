@@ -107,7 +107,7 @@ def attempt_json_repair(text):
 
 class Action(BaseModel):
     action: str
-    square: int
+    space: int
 
 class GPTRequest(BaseModel):
     transcription: str
@@ -145,7 +145,7 @@ async def process_gpt_request(request: GPTRequest):
                 {"role": "user", "content": user_input}
             ],
             temperature=0.0,  # Deterministic responses
-            max_tokens=200,   # Further reduced tokens
+            max_tokens=300,   # Further reduced tokens
             response_format={"type": "json_object"},  # Force JSON response
             presence_penalty=0,
             frequency_penalty=0,
@@ -193,9 +193,9 @@ async def process_gpt_request(request: GPTRequest):
             
             # Fix action field names if needed
             for action in content["actions"]:
-                if "space" in action:
-                    action["square"] = action["space"]
-                    del action["space"]
+                if "square" in action:
+                    action["space"] = action["square"]
+                    del action["square"]
             
             # Cache the valid response
             result = GPTResponse(**content)

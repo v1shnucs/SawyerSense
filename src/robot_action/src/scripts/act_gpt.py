@@ -3,14 +3,14 @@
 # The script expects JSON messages in the format:
 # {
 #     "action": "grab" or "place",
-#     "square": 1-12 (integer)
+#     "space": 1-12 (integer)
 # }
 
 import rospy
 from std_msgs.msg import String
 import json
-from open_gripper import open_gripper
-from close_gripper import close_gripper
+from open_robust import open_gripper
+from close_robust import close_gripper
 from goto_table_neutral import goto_table_neutral
 from intera_motion_interface import (
     MotionTrajectory,
@@ -96,23 +96,23 @@ class ActionExecutor:
             # Parse the GPT response
             response_data = json.loads(msg.data)
             action = response_data.get('action')
-            square = response_data.get('square')
+            space = response_data.get('space')
             
-            if not action or not square:
-                rospy.logerr("Invalid message format: missing action or square")
+            if not action or not space:
+                rospy.logerr("Invalid message format: missing action or space")
                 return
             
-            if not isinstance(square, int) or square < 1 or square > 12:
-                rospy.logerr("Invalid square number: must be integer between 1-12")
+            if not isinstance(space, int) or space < 1 or space > 12:
+                rospy.logerr("Invalid space number: must be integer between 1-12")
                 return
                 
-            rospy.loginfo("Executing action: %s at square %s" % (action, square))
+            rospy.loginfo("Executing action: %s at space %s" % (action, space))
             
             # Execute the appropriate action
             if action.lower() == 'grab':
-                self.grab(square)
+                self.grab(space)
             elif action.lower() == 'place':
-                self.place(square)
+                self.place(space)
             else:
                 rospy.logerr("Unknown action: %s" % action)
                 return
@@ -125,9 +125,9 @@ class ActionExecutor:
         except Exception as e:
             rospy.logerr("Error executing action: %s" % str(e))
 
-    def grab(self, square_num):
-        """Takes a square number 1-12 inclusive and grabs the object at that location."""
-        square_num = int(square_num)
+    def grab(self, space_num):
+        """Takes a space number 1-12 inclusive and grabs the object at that location."""
+        space_num = int(space_num)
         
         try:
             rospy.loginfo("Executing grab action")
@@ -136,12 +136,12 @@ class ActionExecutor:
             prep_args = {'speed_ratio': 0.5,
                         'accel_ratio': 0.5,
                         'timeout': None,
-                        'joint_angles': PREP_POSITION[square_num - 1]
+                        'joint_angles': PREP_POSITION[space_num - 1]
                         }
             grab_args = {'speed_ratio': 0.5,
                         'accel_ratio': 0.5,
                         'timeout': None,
-                        'joint_angles': GRAB_POSITION[square_num - 1]
+                        'joint_angles': GRAB_POSITION[space_num - 1]
                         }
 
             # Map prep waypoints
@@ -201,9 +201,9 @@ class ActionExecutor:
         except Exception as e:
             rospy.logerr("Error in grab action: %s" % str(e))
 
-    def place(self, square_num):
-        """Takes a square number 1-12 inclusive and places the object at that location."""
-        square_num = int(square_num)
+    def place(self, space_num):
+        """Takes a space number 1-12 inclusive and places the object at that location."""
+        space_num = int(space_num)
 
         try:
             rospy.loginfo("Executing place action")
@@ -212,12 +212,12 @@ class ActionExecutor:
             prep_args = {'speed_ratio': 0.5,
                         'accel_ratio': 0.5,
                         'timeout': None,
-                        'joint_angles': PREP_POSITION[square_num - 1]
+                        'joint_angles': PREP_POSITION[space_num - 1]
                         }
             place_args = {'speed_ratio': 0.5,
                          'accel_ratio': 0.5,
                          'timeout': None,
-                         'joint_angles': GRAB_POSITION[square_num - 1]  # Using GRAB_POSITION for placing
+                         'joint_angles': GRAB_POSITION[space_num - 1]  # Using GRAB_POSITION for placing
                          }
 
             # Map prep waypoints

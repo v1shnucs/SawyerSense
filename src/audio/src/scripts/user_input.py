@@ -49,7 +49,7 @@ def listen_and_transcribe():
             audio_file = "/tmp/audio_input.wav"
             subprocess.call([
                 'sox', '-d', '-r', '16000', '-c', '1', audio_file,
-                'silence', '1', '0.1', '1%', '1', '3.0', '1%'  # Wait for 3 seconds of silence
+                'silence', '1', '0.1', '0.5%', '1', '3.0', '0.1%'  
             ])
             
             # Check if the audio file exists and is not empty

@@ -72,12 +72,15 @@ Grid Layout:
 - Middle row: spaces 5,6,7,8
 - Bottom row: spaces 1,2,3,4
 
-Each space may contain an object with:
+Each space may contain an object with only:
 - Color: red, blue, yellow, or green
-- Shape: circle, triangle, or square
+- Shape: circle, triangle, or square 
+
+If a different color is detected than what is given change it to a color that is given.
+For example, if there is orange, it should be yellow.
 
 For each object, respond with:
-'Space X has [color] [shape]'
+'Space X has [red/blue/yellow/green] [circle/triangle/square]'
 List one object per line.
 
 If no objects are detected, respond with:
