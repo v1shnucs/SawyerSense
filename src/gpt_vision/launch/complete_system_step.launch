@@ -1,0 +1,31 @@
+<launch>
+    <!-- Set environment variables -->
+    <env name="GPT_SERVICE_URL" value="http://localhost:8000"/>
+    <env name="VISION_SERVICE_URL" value="http://localhost:8001"/>
+
+    <!-- Enable the robot -->
+    <node name="enable_robot" pkg="intera_interface" type="enable_robot.py" args="-e" output="screen"/>
+
+    <!-- Move arm to photo position -->
+    <node name="move_arm_for_photo" pkg="gpt_vision" type="move_arm_for_photo.py" output="screen"/>
+
+    <!-- Launch vision processing node -->
+    <node name="vision_grid_state" pkg="gpt_vision" type="vision_grid_state.py" output="screen">
+        <param name="filename" value="workspace"/>
+        <param name="camera" value="rs"/>
+    </node>
+
+    <!-- Launch GPT response step node -->
+    <node name="gpt_response_step_node" pkg="gpt_vision" type="get_gpt_response_step.py" output="screen">
+        <remap from="/grid_state" to="/grid_state"/>
+        <remap from="/transcription" to="/transcription"/>
+        <remap from="/user_confirmation" to="/transcription"/>
+    </node>
+
+    <!-- Launch robot action node -->
+    <node name="act_gpt" pkg="robot_action" type="act_gpt.py" output="screen"/>
+
+    <!-- Launch audio nodes -->
+    <node name="speak_output" pkg="audio" type="speak_gpt.py" output="screen"/>
+    <node name="speech_input" pkg="audio" type="user_input.py" output="screen"/>
+</launch>
