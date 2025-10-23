@@ -52,7 +52,9 @@ def close_gripper():
             return
         # Optionally reinitialize the gripper if it's the last attempt
         if attempt < MAX_RETRIES:
-            rospy.loginfo("Retrying after brief pause...")
+            rospy.loginfo("Retrying after opening and a brief pause...")
+            from open_robust import open_gripper as robust_open
+            robust_open()
             rospy.sleep(0.5)
     # All retries failed
     rospy.logerr("All {} close attempts failed; consider recalibration".format(MAX_RETRIES))

@@ -48,9 +48,9 @@ def listen_and_transcribe():
             # Record audio using sox with extended silence detection
             audio_file = "/tmp/audio_input.wav"
             subprocess.call([
-                'sox', '-d', '-r', '16000', '-c', '1', audio_file,
-                'silence', '1', '0.1', '0.5%', '1', '3.0', '0.1%'  
-            ])
+                    'sox', '-d', '-r', '16000', '-c', '1', audio_file,
+                    'silence', '1', '0.05', '0.1%', '1', '1.5', '0.1%'
+                ])
             
             # Check if the audio file exists and is not empty
             if not os.path.exists(audio_file) or os.path.getsize(audio_file) == 0:

@@ -1,0 +1,177 @@
+diff --git a/README.md b/README.md
+index acd7981..49d6216 100644
+--- a/README.md
++++ b/README.md
+@@ -1,50 +1,77 @@
+ # SawyerSense
+ 
+-## Instructions for Using the System
+-
+-1. **Set Up GPT Services**:
+-   - Start the GPT services in two terminals:
+-     ```bash
+-     # Terminal 1
+-     cd gpt_service
+-     source venv/bin/activate
+-     export OPENAI_API_KEY=<your-openai-api-key>
+-     uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+-
+-     # Terminal 2
+-     cd gpt_service
+-     source venv/bin/activate
+-     export OPENAI_API_KEY=<your-openai-api-key>
+-     uvicorn vision_service:app --host 0.0.0.0 --port 8001 --reload
+-     ```
+-
+-2. **Launch the System**:
+-   - Copy the template launch file and update it with your API key and service URLs:
+-     ```bash
+-     cp src/gpt_vision/launch/complete_system.launch.template src/gpt_vision/launch/complete_system.launch
+-     ```
+-
+-   - Edit `src/launch/complete_system.launch` to include:
+-     - `OPENAI_API_KEY` as your OpenAI API key
+-     - `VISION_SERVICE_URL` as the vision service URL (e.g., `http://localhost:8001`)
+-
+-   - Start the system:
+-     ```bash
+-     cd /home/vishnu/ros_2025
+-     ./intera.sh
+-     source devel/setup.bash
+-     roslaunch gpt_vision complete_system.launch
+-     ```
+-
+-3. **System Workflow**:
+-   - The system will:
+-     1. Enable the robot
+-     2. Move the arm to the photo position
+-     3. Wait for the arm to be fully positioned
+-     4. Take a photo of the workspace using RealSense camera
+-     5. Start listening for voice commands
+-     6. Process commands through GPT and execute robot actions
+-     7. Provide voice feedback through text-to-speech
++## System Startup Instructions
++
++Follow these steps in order to start the complete system:
++
++### 1. Start the Webcam
++First, start the RealSense camera for point cloud visualization:
++```bash
++# Read the startup script first (optional)
++./start.txt
++
++# Launch RealSense camera
++roslaunch realsense2_camera demo_pointcloud.launch
++```
++
++### 2. Start GPT Service (Terminal 1)
++Open a new terminal and start the main GPT service:
++```bash
++# Source the Intera environment
++./intera.sh
++
++# Navigate to GPT service directory
++cd gpt_service
++
++# Activate Python virtual environment
++source venv/bin/activate
++
++# Set OpenAI API key (replace with your actual key)
++export OPENAI_API_KEY=<your-openai-api-key>
++
++# Start the main service (choose one option)
++uvicorn main:app --host 0.0.0.0 --port 8000 --reload
++# OR for step-by-step mode:
++# uvicorn main_step:app --host 0.0.0.0 --port 8000 --reload
++```
++
++### 3. Start Vision Service (Terminal 2)
++Open another new terminal and start the vision service:
++```bash
++# Source the Intera environment
++./intera.sh
++
++# Navigate to GPT service directory
++cd gpt_service
++
++# Activate Python virtual environment
++source venv/bin/activate
++
++# Set OpenAI API key (replace with your actual key)
++export OPENAI_API_KEY=<your-openai-api-key>
++
++# Start the vision service
++uvicorn vision_service:app --host 0.0.0.0 --port 8001 --reload
++```
++
++### 4. Launch Complete System (Terminal 3)
++Open a final terminal and launch the ROS system:
++```bash
++# Launch the complete system (choose one option)
++roslaunch gpt_vision complete_system.launch
++# OR for step-by-step mode:
++# roslaunch gpt_vision complete_system_step.launch
++```
++
++### System Workflow
++Once all services are running, the system will:
++1. Enable the robot
++2. Move the arm to the photo position
++3. Wait for the arm to be fully positioned
++4. Take a photo of the workspace using RealSense camera
++5. Start listening for voice commands
++6. Process commands through GPT and execute robot actions
++7. Provide voice feedback through text-to-speech
+ 
+ ## Setup
+ 
+diff --git a/src/audio/src/scripts/user_input.py b/src/audio/src/scripts/user_input.py
+index fe6f6a9..4ad3afa 100755
+--- a/src/audio/src/scripts/user_input.py
++++ b/src/audio/src/scripts/user_input.py
+@@ -48,9 +48,9 @@ def listen_and_transcribe():
+             # Record audio using sox with extended silence detection
+             audio_file = "/tmp/audio_input.wav"
+             subprocess.call([
+-                'sox', '-d', '-r', '16000', '-c', '1', audio_file,
+-                'silence', '1', '0.1', '0.5%', '1', '3.0', '0.1%'  
+-            ])
++                    'sox', '-d', '-r', '16000', '-c', '1', audio_file,
++                    'silence', '1', '0.05', '0.1%', '1', '1.5', '0.1%'
++                ])
+             
+             # Check if the audio file exists and is not empty
+             if not os.path.exists(audio_file) or os.path.getsize(audio_file) == 0:
+diff --git a/src/gpt_vision/src/images/workspace.jpg b/src/gpt_vision/src/images/workspace.jpg
+index 6c62bb3..f8524f1 100644
+Binary files a/src/gpt_vision/src/images/workspace.jpg and b/src/gpt_vision/src/images/workspace.jpg differ
+diff --git a/src/robot_action/src/scripts/close_robust.py b/src/robot_action/src/scripts/close_robust.py
+index 4c57ef4..eccdf79 100755
+--- a/src/robot_action/src/scripts/close_robust.py
++++ b/src/robot_action/src/scripts/close_robust.py
+@@ -52,7 +52,9 @@ def close_gripper():
+             return
+         # Optionally reinitialize the gripper if it's the last attempt
+         if attempt < MAX_RETRIES:
+-            rospy.loginfo("Retrying after brief pause...")
++            rospy.loginfo("Retrying after opening and a brief pause...")
++            from open_robust import open_gripper as robust_open
++            robust_open()
+             rospy.sleep(0.5)
+     # All retries failed
+     rospy.logerr("All {} close attempts failed; consider recalibration".format(MAX_RETRIES))
+diff --git a/src/robot_action/src/scripts/open_robust.py b/src/robot_action/src/scripts/open_robust.py
+index 7ba1a60..41992c2 100755
+--- a/src/robot_action/src/scripts/open_robust.py
++++ b/src/robot_action/src/scripts/open_robust.py
+@@ -50,7 +50,9 @@ def open_gripper():
+             rospy.loginfo("Gripper successfully opened on attempt {}".format(attempt))
+             return
+         if attempt < MAX_RETRIES:
+-            rospy.loginfo("Retrying after brief pause...")
++            rospy.loginfo("Retrying after closing and a brief pause...")
++            from close_robust import close_gripper as robust_close
++            robust_close()
+             rospy.sleep(0.5)
+     rospy.logerr("All {} open attempts failed; consider recalibration".format(MAX_RETRIES))
+ 

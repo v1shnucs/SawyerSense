@@ -1,0 +1,32 @@
+<launch>
+    <!-- Environment variables -->
+    <env name="GPT_SERVICE_URL" value="http://localhost:8000"/>
+    <env name="VISION_SERVICE_URL" value="http://localhost:8001"/>
+
+    <!-- Enable the robot -->
+    <node name="enable_robot" pkg="intera_interface" type="enable_robot.py" args="-e" output="screen"/>
+
+    <!-- Move arm to photo position -->
+    <node name="move_arm_for_photo" pkg="gpt_vision" type="move_arm_for_photo.py" output="screen"/>
+
+    <!-- Vision processing node -->
+    <node name="vision_grid_state" pkg="gpt_vision" type="vision_grid_state.py" output="screen">
+        <param name="filename" value="workspace"/>
+        <param name="camera" value="rs"/>
+    </node>
+
+    <!-- Auto-confirm step GPT response node (no per-step confirmations) -->
+    <node name="gpt_response_step_no_confirm_node" pkg="gpt_vision" type="get_gpt_response_step_no_confirm.py" output="screen">
+        <remap from="/grid_state" to="/grid_state"/>
+        <remap from="/transcription" to="/transcription"/>
+    </node>
+
+    <!-- Robot action node -->
+    <node name="act_gpt" pkg="robot_action" type="act_gpt.py" output="screen"/>
+
+    <!-- Audio nodes -->
+    <node name="speak_output" pkg="audio" type="speak_gpt.py" output="screen"/>
+    <node name="speech_input" pkg="audio" type="user_input.py" output="screen"/>
+
+    <!-- See README.md for service startup instructions -->
+</launch>
