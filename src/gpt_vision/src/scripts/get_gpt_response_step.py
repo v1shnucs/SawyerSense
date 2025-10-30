@@ -21,7 +21,8 @@ class GPTResponseStepNode:
         
         self.response_pub = rospy.Publisher('/gpt_response', String, queue_size=10) # For act_gpt.py
         self.speak_pub = rospy.Publisher('/speak_text', String, queue_size=10)
-        
+        # ADD THIS LINE:
+        self.photo_trigger_pub = rospy.Publisher('/retake_photo_trigger', String, queue_size=10)
         # Subscribers
         rospy.Subscriber('/transcription', String, self.transcription_callback)
         rospy.Subscriber('/grid_state', String, self.grid_state_callback)
@@ -135,11 +136,26 @@ class GPTResponseStepNode:
                 return
             
             if self.current_logical_step_primitive_actions:
+                # ADD THIS BLOCK
+                first_action = self.current_logical_step_primitive_actions[0]
+                if (len(self.current_logical_step_primitive_actions) == 1 and
+                    isinstance(first_action, dict) and
+                    first_action.get("action") == "photo"):
+
+                    rospy.loginfo("Special 'photo' action detected. Triggering retake.")
+                    self.photo_trigger_pub.publish("retake_photo")
+
+                    # Reset flags to wait for the new grid state
+                    self.waiting_for_confirmation_for_logical_step = False
+                    self.current_logical_step_primitive_actions = []
+                    return # Skip the confirmation logic
+                # END OF ADDED BLOCK
+
                 # We have a new logical step (with one or more primitive actions) to propose
                 self.current_primitive_action_idx = 0 # Reset for the new set of actions
                 self.executing_primitive_actions_sequence = False # Not executing yet, just proposing
                 self.waiting_for_confirmation_for_logical_step = True
-                rospy.loginfo("Proposing logical step: '%s' with %d primitive actions. Waiting for user confirmation.", 
+                rospy.loginfo("Proposing logical step: '%s' with %d primitive actions. Waiting for user confirmation.",
                               speak_text, len(self.current_logical_step_primitive_actions))
             else: 
                 rospy.logwarn("No primitive actions in service response, but task not marked completed. Task ID: %s", self.current_task_id)

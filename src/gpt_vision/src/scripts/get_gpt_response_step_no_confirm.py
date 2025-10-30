@@ -24,6 +24,8 @@ class GPTResponseStepAutoNode:
         # Publishers
         self.response_pub = rospy.Publisher('/gpt_response', String, queue_size=10)  # For act_gpt.py
         self.speak_pub = rospy.Publisher('/speak_text', String, queue_size=10)
+        # ADD THIS LINE:
+        self.photo_trigger_pub = rospy.Publisher('/retake_photo_trigger', String, queue_size=10)
 
         # Subscribers
         rospy.Subscriber('/transcription', String, self.transcription_callback)
@@ -138,6 +140,21 @@ class GPTResponseStepAutoNode:
                 return
 
             if self.current_logical_step_primitive_actions:
+                # ADD THIS BLOCK
+                first_action = self.current_logical_step_primitive_actions[0]
+                if (len(self.current_logical_step_primitive_actions) == 1 and
+                    isinstance(first_action, dict) and
+                    first_action.get("action") == "photo"):
+
+                    rospy.loginfo("Special 'photo' action detected. Triggering retake.")
+                    self.photo_trigger_pub.publish("retake_photo")
+
+                    # Reset flags to wait for the new grid state
+                    self.executing_primitive_actions_sequence = False
+                    self.current_logical_step_primitive_actions = []
+                    return # Skip execution logic
+                # END OF ADDED BLOCK
+
                 # Auto-confirm: start executing immediately
                 self.current_primitive_action_idx = 0
                 self.executing_primitive_actions_sequence = True
