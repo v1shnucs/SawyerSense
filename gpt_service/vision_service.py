@@ -58,8 +58,9 @@ async def process_vision_request(request: VisionRequest):
         # Call GPT-4o API
         client = get_client()
         response = client.responses.create(
-            model="gpt-4o",  # Using full GPT-4o model for better accuracy
-            temperature=0,  # Add temperature=0 for consistent responses
+            model="gpt-5",  # Switched to gpt-5
+            reasoning={ "effort": "low" },
+            # temperature removed: not supported by responses.create
             input=[{
                 "role": "user",
                 "content": [
@@ -74,7 +75,7 @@ Grid Layout:
 
 Each space may contain an object with only:
 - Color: red, blue, yellow, or green
-- Shape: circle, triangle, or square 
+- Shape: circle, triangle, or square
 
 If a different color is detected than what is given change it to a color that is given.
 For example, if there is orange, it should be yellow.
@@ -103,12 +104,21 @@ If the image is unclear, respond with:
         print(f"Raw response: {response}")
         
         # Extract and validate response
-        if not hasattr(response, 'output_text'):
-            raise ValueError(f"Unexpected response format: {response}")
-            
-        grid_state = response.output_text.strip()
+        grid_state = None
+        if hasattr(response, 'output') and isinstance(response.output, list):
+            # Find the first 'message' in the output list
+            for item in response.output:
+                if item.type == 'message' and hasattr(item, 'content') and isinstance(item.content, list):
+                    # Find the first 'output_text' in the content list
+                    for content_item in item.content:
+                        if content_item.type == 'output_text' and hasattr(content_item, 'text'):
+                            grid_state = content_item.text.strip()
+                            break
+                    if grid_state:
+                        break
+
         if not grid_state:
-            raise ValueError("Empty response from vision API")
+            raise ValueError(f"Unexpected response format. Could not find 'output_text': {response}")
             
         # Log complete response for debugging
         print(f"Complete grid state description: {grid_state}")

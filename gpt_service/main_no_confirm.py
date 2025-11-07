@@ -85,31 +85,76 @@ async def get_llm_response(user_input_for_llm: str, task_id: Optional[str] = Non
         raise HTTPException(status_code=500, detail="System prompt not loaded, cannot process request.")
     try:
         print(f"Task {task_id or 'N/A'}: Sending to LLM (first 200 chars): {user_input_for_llm[:200]}...")
-        llm_api_response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input_for_llm}
+        llm_api_response = client.responses.create(
+            model="gpt-5",
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"System Prompt: {system_prompt}\n\nUser Task: {user_input_for_llm}"
+                        }
+                    ]
+                }
             ],
-            temperature=0.0,
-            max_tokens=500,
-            response_format={"type": "json_object"},
+            reasoning={ "effort": "low" },
+            # max_tokens=500,
+            # response_format removed; rely on system prompt to output JSON
         )
-        response_text = llm_api_response.choices[0].message.content.strip()
+        # The new API returns a complex Response object. We must parse it.
+        response_text = None
+        if hasattr(llm_api_response, 'output') and isinstance(llm_api_response.output, list):
+            for item in llm_api_response.output:
+                if item.type == 'message' and hasattr(item, 'content') and isinstance(item.content, list):
+                    for content_item in item.content:
+                        if content_item.type == 'output_text' and hasattr(content_item, 'text'):
+                            response_text = content_item.text.strip()
+                            break
+                    if response_text:
+                        break
+
+        if not response_text:
+            raise ValueError(f"Unexpected response format. Could not find 'output_text': {llm_api_response}")
+
         print(f"Task {task_id or 'N/A'}: Raw LLM response (first 200 chars): {response_text[:200]}...")
-
-        parsed_llm_json = json.loads(response_text)
-
+ 
+        # Try parsing JSON, attempt repair if necessary
+        try:
+            parsed_llm_json = json.loads(response_text)
+        except json.JSONDecodeError as e:
+            print(f"Task {task_id or 'N/A'}: JSON parsing error: {e}. Attempting repair.")
+            # Reuse attempt_json_repair by inlining a simple repair routine
+            def attempt_json_repair_local(text):
+                if not text:
+                    return None
+                try:
+                    return json.loads(text)
+                except:
+                    pass
+                try:
+                    if text.count('{') > text.count('}'):
+                        text += '}' * (text.count('{') - text.count('}'))
+                    if text.count('[') > text.count(']'):
+                        text += ']' * (text.count('[') - text.count(']'))
+                    return json.loads(text)
+                except:
+                    return None
+            parsed_llm_json = attempt_json_repair_local(response_text)
+            if not parsed_llm_json:
+                raise ValueError(f"Failed to parse LLM response after repair attempts: {str(e)}")
+            print(f"Task {task_id or 'N/A'}: Successfully repaired malformed JSON.")
+ 
         if not isinstance(parsed_llm_json, dict) or \
            "speak" not in parsed_llm_json or \
            "actions" not in parsed_llm_json:
             print(f"Task {task_id or 'N/A'}: LLM response missing 'speak' or 'actions' keys. Response: {parsed_llm_json}")
             raise ValueError("LLM response must contain 'speak' and 'actions' fields.")
-
+ 
         if not isinstance(parsed_llm_json["actions"], list):
             print(f"Task {task_id or 'N/A'}: LLM 'actions' field is not a list. Response: {parsed_llm_json}")
             raise ValueError("'actions' must be a list of primitive action objects.")
-
+ 
         for prim_action in parsed_llm_json["actions"]:
             if not isinstance(prim_action, dict) or \
                "action" not in prim_action or \

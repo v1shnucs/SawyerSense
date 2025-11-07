@@ -137,25 +137,44 @@ async def process_gpt_request(request: GPTRequest):
         if cache_key in response_cache:
             return response_cache[cache_key]
 
-        # Call OpenAI API using chat completions with further optimized parameters
-        response = client.chat.completions.create(
-            model="gpt-4o",  # Switching to GPT-4o model for better accuracy
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input}
+        # Call OpenAI API using the new Responses API
+        response = client.responses.create(
+            model="gpt-5",  # Switched to gpt-5
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"System Prompt: {system_prompt}\n\nUser Request: {user_input}"
+                        }
+                    ]
+                }
             ],
-            temperature=0.0,  # Deterministic responses
-            max_tokens=300,   # Further reduced tokens
-            response_format={"type": "json_object"},  # Force JSON response
-            presence_penalty=0,
-            frequency_penalty=0,
-            top_p=0.1,       # More focused sampling
-            seed=42          # Consistent responses
+            reasoning={ "effort": "low" }
+            # temperature removed: not supported by responses.create
+            # max_tokens=300,   # Keep max_tokens
+            # response_format is not used in this API,
+            # you must rely on the system prompt to return JSON.
+            # Your existing attempt_json_repair function will be important.
         )
         
         # Parse the response
         try:
-            response_text = response.choices[0].message.content.strip()
+            # The new API returns a complex Response object. We must parse it.
+            response_text = None
+            if hasattr(response, 'output') and isinstance(response.output, list):
+                for item in response.output:
+                    if item.type == 'message' and hasattr(item, 'content') and isinstance(item.content, list):
+                        for content_item in item.content:
+                            if content_item.type == 'output_text' and hasattr(content_item, 'text'):
+                                response_text = content_item.text.strip()
+                                break
+                        if response_text:
+                            break
+
+            if not response_text:
+                 raise ValueError(f"Unexpected response format. Could not find 'output_text': {response}")
             
             # Log the raw response for debugging
             print(f"Raw GPT response: {response_text}")
