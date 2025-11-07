@@ -18,7 +18,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
     timeout=20.0
 )
-
+# just the test
 # Load system prompt
 def load_system_prompt() -> Optional[str]:
     try:
