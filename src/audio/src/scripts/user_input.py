@@ -54,7 +54,14 @@ def listen_and_transcribe():
             
             # Check if the audio file exists and is not empty
             if not os.path.exists(audio_file) or os.path.getsize(audio_file) == 0:
-                rospy.logwarn("No valid audio recorded. Skipping transcription.")
+                rospy.logwarn("No valid audio recorded. Restarting listener.")
+                # Allow recording again since nothing valid was captured
+                can_record = True
+                try:
+                    if os.path.exists(audio_file):
+                        os.remove(audio_file)
+                except Exception:
+                    pass
                 continue
             
             rospy.loginfo("Processing speech...")
@@ -65,15 +72,31 @@ def listen_and_transcribe():
             
             with sr.AudioFile(audio_file) as source:
                 audio = recognizer.record(source)
-                text = recognizer.recognize_google(audio)
-                rospy.loginfo("Recognized text: " + text)
-                pub.publish(text)
-            
-            # Clean up audio file
-            os.remove(audio_file)
+                try:
+                    text = recognizer.recognize_google(audio)
+                    rospy.loginfo("Recognized text: " + text)
+                    pub.publish(text)
+                    # Successful recognition: do NOT re-enable recording here.
+                    # Wait for /speak_finished to set can_record = True to avoid overlapping TTS.
+                except sr.UnknownValueError:
+                    rospy.logwarn("Speech was unintelligible. Restarting listener.")
+                    can_record = True
+                except sr.RequestError as e:
+                    rospy.logerr("Could not request results from Speech Recognition service: %s", e)
+                    # Re-enable listening after service error so user can try again
+                    can_record = True
+                finally:
+                    # Clean up audio file
+                    try:
+                        if os.path.exists(audio_file):
+                            os.remove(audio_file)
+                    except Exception:
+                        pass
             
         except Exception as e:
             rospy.logerr("Error occurred: {0}".format(e))
+            # Make sure we can try recording again after unexpected errors
+            can_record = True
         
         rospy.sleep(1)  # Small delay before next recording
 
